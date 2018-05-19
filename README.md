@@ -1,6 +1,6 @@
 # Pragmatrix
 
-![Of windmills and other hallucinogens](./pragmatrix_image.jpeg)
+![Of windmills and other hallucinogens](pragmatrix_image.jpeg)
 
 I might be wrong, because I have just recently started dabbling in Data Science, as the code to be found above might have already given away, but I have this very annoying and probably unfair impression that there are many experts who firmly believe that there will come a day when a few genii come together and in their garage-like lair give birth to a very convoluted brain-like machine that, after landing in Google’s mighty hands, will on its own be capable of, for all intents and purposes, making sense of the world, deciphering what people mean with what they put in words and, perhaps, even get at that slippery bastard known as the truth. I, however, have always been a staunch disbeliever and am perhaps precisely therefore less eager to buy into the claim that our Maker is waiting for us around the corner. 
 
