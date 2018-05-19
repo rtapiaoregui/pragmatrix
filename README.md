@@ -7,4 +7,6 @@ To me, language is meant to meet our need to feel part of a bigger entity than o
 
 By now, you might be wondering what all this pseudo philosophical crap is doing on Github, of all places. Well, while I don’t believe that, say, a neural network, can provide us with the answer to what people mean with what they say, I think machine learning can be very useful to help us predict how aware people are of how their message might be received given a context that severely constrains what they might want to refer to, for, although what an utterance can mean is always bound by the communicative situation where it takes place, there are situations that allow for the conveyance of a wider range of possible meanings than others. I also hold that, more often than not, the more aware people seem of how the language they express themselves in portrays them, the more reliable they turn out to be. Reliable in the sense that they have a better understanding of how systems work, systems such language or reality. 
 
-This brings me to the project I am hereby introducing to you. Meet Pragmatrix: an attempt at showing which of its features make a given text more or less recognisable as an example of the type of texts the site where it came from hosts.
+This brings me to the project I am hereby introducing to you. 
+
+Meet Pragmatrix: an attempt at showing which of its features make a given text more or less recognisable as an example of the type of texts the site where it came from hosts.
