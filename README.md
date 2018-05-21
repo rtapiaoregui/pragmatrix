@@ -10,4 +10,4 @@ By now, you might be wondering what all this pseudo philosophical crap is doing 
 
 This brings me to the project I am hereby introducing to you. 
 
-Meet Pragmatrix: an attempt at showing which of its features make a given text more or less recognisable as an example of the type of texts the site where it came from hosts.
+Meet Pragmatrix: an attempt at showing which of its features make a given text more or less recognisable as an example of the type of texts the site it was extracted from hosts.
