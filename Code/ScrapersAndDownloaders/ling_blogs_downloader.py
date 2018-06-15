@@ -5,7 +5,8 @@ Created on Sat Mar 31 13:35:48 2018
 
 @author: rita
 
-Extracts articles posted on the Oxford Dictionaries Blog 
+Extracts articles posted on the Oxford Dictionaries Blog and 
+the Collins Dictionary Word Lovers' Blog
 and saves them as files in the oxbord_blog folder
 
 """
@@ -16,22 +17,20 @@ import re
 from bs4 import BeautifulSoup as bs
 from tqdm import tqdm
 
+import prepro_funcs as prep
 
-common_path = "/Users/rita/Google Drive/DSR/DSR Project/Dataset/linguistic_blogs"
  
-def oxford_down(): 
+def oxford_down(paths): 
       
-    oxford_files = os.path.join(common_path, 'oxford_blog')      
-
     oxford_corpus = []
     for num in range(1, 242):
         if num == 1:
             site = 'https://blog.oxforddictionaries.com'
         else :
             site = 'https://blog.oxforddictionaries.com/page/' + str(num) + '/' 
-            
-        text = requests.get(site).text    
-        soup = bs(text, 'lxml')
+
+        r_obj = prep.get_proxies(site)
+        soup = bs(r_obj.text, 'lxml')
             
         tags = soup.find_all('a')
         tags = [tag.get('href') for tag in tags if re.search(r'(https://blog.oxforddictionaries.com/)(\d+/\d+/\d+/\w+)', str(tag))]
@@ -53,7 +52,7 @@ def oxford_down():
             if re.search(r'/', soup1.title.string):
                 soup1.title.string = re.sub(r'/', '#', soup1.title.string)
                 
-            with open(os.path.join(oxford_files, ('_'.join(soup1.title.string.split(' -')[0].lower().split(' ')) + '.txt')), 'w') as f:
+            with open(os.path.join(paths['oxford_path'], ('_'.join(soup1.title.string.split(' -')[0].lower().split(' ')) + '.txt')), 'w') as f:
                 f.write(corpus)
                 
             oxford_corpus.append(corpus)
@@ -62,22 +61,20 @@ def oxford_down():
 
 
 
-def collins_down():
+def collins_down(paths):
     
     site = "https://www.collinsdictionary.com/word-lovers-blog/new/?pageNo="
     root = "https://www.collinsdictionary.com"
-    collins_files = os.path.join(common_path, 'collins_blog')
-    
+
     links = []
     page = []
     for i in tqdm(range(66)):
-        site = site + str(i)
-        content = requests.get(site).content
-        soup = bs(content, 'lxml')
+        site1 = site + str(i)
+        r_obj = prep.get_proxies(site1)
+        soup = bs(r_obj.content, 'lxml')
         for i in soup.find_all('a'):
             tag = i.get('href')
             page.append(tag)
-        site = "https://www.collinsdictionary.com/word-lovers-blog/new/?pageNo="
     
     links = list(set(page))
     
@@ -88,15 +85,15 @@ def collins_down():
             link = root + str(link)
             print(link)
         try:
-            content1 = requests.get(link).content
-            soup1 = bs(content1, "lxml")
+            r_obj1 = prep.get_proxies(link)
+            soup1 = bs(r_obj1.content, "lxml")
             strings = []
             corpus = []
             for link1 in soup1.find_all('p'):
                 for i in link1.contents:
                     strings.append(str(i.string))
             corpus = ''.join(str(strings))
-            file = open(os.path.join(collins_files, link.split('/')[-1].replace('.html', '') + '.txt'), 'w')
+            file = open(os.path.join(paths['collins_path'], link.split('/')[-1].replace('.html', '') + '.txt'), 'w')
             file.write(corpus)
             file.close()
             
@@ -104,8 +101,7 @@ def collins_down():
         except:
             continue
         
-        
     return collins_corpus
         
-oxford_corpus = oxford_down()  
-collins_corpus = collins_down()
+oxford_corpus = oxford_down(paths)  
+collins_corpus = collins_down(paths)

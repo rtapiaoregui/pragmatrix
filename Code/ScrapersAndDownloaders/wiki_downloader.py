@@ -8,34 +8,43 @@ Created on Sun Apr  1 12:36:05 2018
 
 import requests 
 import os
+import re
+#import random
 from bs4 import BeautifulSoup as bs
 
-os.chdir('/Users/jose/Google Drive/Kaggle/DSR Project/Code/')
-import wiki_scraper as wscrap
 
-path = '/Users/jose/Google Drive/Kaggle/DSR Project/Dataset/Wikipedia/'
-numArticles = 5
 
-r = requests.get('https://en.wikipedia.org/wiki/Wikipedia:Unusual_articles')
+def wiki_down(url = 'https://en.wikipedia.org/wiki/Special:Random', wiki_files = paths.get('wiki_path')):
 
-soup = bs(r.text, 'html.parser')
-
-allLinks = soup.findAll('a')
-allLinks = [tag.get('href') for tag in allLinks]
-
-allLinks = [link for link in allLinks if (str(link).startswith(u"/wiki/"))]
-allLinks = [link for link in allLinks if not (u"Category" in str(link))]
-allLinks = [link for link in allLinks if not (u"Special" in str(link))]
-allLinks = [link for link in allLinks if not (u"File" in str(link))]
-allLinks = [link for link in allLinks if not (u"Wikipedia" in str(link))]
-allLinks = [link for link in allLinks if not (u"Portal" in str(link))]
-allLinks = [link for link in allLinks if not (u"Talk" in str(link))]
-allLinks = [link for link in allLinks if not (u"Help" in str(link))]
-allLinks = [link for link in allLinks if not (u"Template" in str(link))]
-
-for nextURL in allLinks:
-    nextURL = 'https://en.wikipedia.org'+nextURL
-    for i in range(numArticles):
-        print(nextURL)
-        nextURL = wscrap.wiki_down(path,nextURL)
+    """
+    Function to download Wikipedia articles, clean them superficially 
+    and save them in a folder stored in my computer.
     
+    If the url is not specified, it chooses a random article, thanks to Wikipedia's API
+    """
+
+    r = requests.get(url)    
+    soup = bs(r.text, 'html.parser')
+    file_name = re.sub(r'\-', r'', re.sub(r'\s', r'_', str(soup.title.string).lower())) + '.txt'    
+    file_name = re.sub(r'\/', r'_', file_name)
+    
+    article = soup.get_text()
+    
+    # Finds where the actual article starts and removes anything being displayed before that:
+    article = article.split('From Wikipedia, the free encyclopedia')[1]
+    # Finds where the actual article ends and removes anything being displayed after that:
+    article = article.split('References[edit]')[0]
+    
+    article = re.sub(r'\[\d*\]','', article)
+    article = re.sub(r'\[(edit)\]','', article)
+    article = re.sub(u'\n', ' ', article)
+    article = re.sub(r'\s+', ' ', article)
+    
+    with open(os.path.join(wiki_files, file_name), 'w') as f:
+        f.write(article)
+
+
+        
+num_articles = 10000            
+for i in tqdm(range(num_articles)):
+    wiki_down()

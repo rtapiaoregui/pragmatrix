@@ -11,74 +11,124 @@ Feature enriching script
 import os
 import pandas as pd
 import pickle
+from operator import itemgetter
 
 # Functions and classes
-classes_path = '/Users/rita/Google Drive/DSR/DSR Project/Code/'
-os.chdir(classes_path)
+# os.chdir(paths['code_path'])
 import classy_n_funky as cl
 import cleaner
 
+from sklearn.base import BaseEstimator, TransformerMixin
+
 
     
-def add_features(df, paths, columns_to_idf):
+class add_features(BaseEstimator, TransformerMixin):
       
-    # Plus basic features:
-    df_basic, feat_basic = cl.basicker(df)
-    print("""
-          Names of the data set's columns and data set's size 
-          after increase with the addition of the basic features:
-              {}
-              {}
-              """.format(df_basic.shape, df_basic.columns))
+    def __init__(self, columns_to_idf, dict_colls, nli_model, nli_tokenizer, paths,
+                 pth_subset = ['df_colls_path', 'df_tfidf_path', 'df_doc2vec_path']):
+        
+        self.columns_to_idf = columns_to_idf
+        self.dict_colls = dict_colls
+        self.nli_model = nli_model
+        self.nli_tokenizer = nli_tokenizer
+        self.paths = itemgetter(*pth_subset)(paths)
+        
+        self.colls_ = cl.collocater(self.dict_colls)
+        self.tfidfer_ = cl.TFIDFer(self.columns_to_idf)
+        self.doc2wecker_ = cl.Doc2wecker()
+        
+        attributes = [attr for attr in dir(self) 
+        if not callable(getattr(self, attr)) and
+        attr.endswith('_') and not attr.startswith("__")]
+                
+        self.attributes = attributes
+        
     
-    # Plus spacy tags:
-    df_spacy, feat_spacy = cl.spacyer(df_basic)
-    print("Data set's size after increase with the addition of spacy's tags: \n{}\n".format(df_spacy.shape))
-    df_spacy.to_csv(paths['spacy_df_path'])
-            
-    # Plus colls:
-    df_colls, feat_colls = cl.collocater(df_spacy)
-    print("Data set's size after increase with the addition of df_colls: \n{}\n".format(df_colls.shape))
-    df_colls.to_csv(paths['colls_df_path'])
-    
-    # Plus BOWer:
-    df_bows, feat_bow = cl.BOWer().fit_transform(df_colls)
-    print("Data set's size after increase with the addition of bags of words: \n{}\n".format(df_bows.shape))   
-    df_bows.to_csv(paths['bows_df_path'])    
-
-    # Plus Tfidfs:
-    df_tfidf, feat_tfidf = cl.TFIDFer(columns_to_idf).fit_transform(df_bows)
-    print("Data set's size after increase with the addition of tfidfs: \n{}\n".format(df_tfidf.shape))   
-    df_tfidf.to_csv(paths['tfidf_df_path'])
-    
-    # Plus doc2vec distances to categories and raw vectors:
-    df_vecs, feat_wecker, _ = cl.Doc2wecker().fit_transform(df_tfidf)
-    print("Data set's size after increase with the addition of document vectors' distances to category vectors' distances: \n{}\n".format(df_vecs.shape))   
-    df_vecs.to_csv(paths['vecs_df_path'])
-    
-    feature_dict = {**feat_basic, **feat_spacy, **feat_colls, **feat_bow, **feat_tfidf, **feat_wecker}
-    with open(paths['feature_dict_path'], 'wb') as f:
-        pickle.dump(feature_dict, f)
-    
-    
-    return df_vecs, feature_dict
+    def fit(self, X, y = None):
+        
+        X['text'] = X['text'].map(lambda x: str(x).lower())
+        self.colls_.fit(X)
+        df_spacy, feat_spacy = cl.spacyer(X)
+        print("Data set's size after increase with the addition of spacy's tags: \n{}\n".format(df_spacy.shape))
+        self.tfidfer_.fit(df_spacy)
+        self.doc2wecker_.fit(df_spacy)
+        
+        return self
 
 
+    def transform(self, X):  
+        
+        X['text'] = X['text'].map(lambda x: str(x).lower())
 
-def dfs_initializer(paths, cleaner_paths, columns_to_idf):
+        # Plus basic features:
+        X, feat_basic = cl.bassicker(X)
+        print("""
+              Names of the data set's columns and data set's size 
+              after increase with the addition of the basic features:
+                  {}
+                  {}
+                  """.format(X.shape, X.columns))
+
+        # Plus colls:
+        X, feat_colls = self.colls_.transform(X)
+        print("\nData set's size after increase with the addition of df_colls: \n{}\n".format(X.shape))
+
+         # Plus spacy tags:
+        X, feat_spacy = cl.spacyer(X)
+        print("\nData set's size after increase with the addition of spacy's tags: \n{}\n".format(X.shape))
+
+        # Plus Tfidfs:
+        X, feat_tfidf = self.tfidfer_.transform(X)
+        print("\nData set's size after increase with the addition of tfidfs: \n{}\n".format(X.shape))   
+
+        # Plus doc2vec distances to categories and raw vectors:
+        X, feat_wecker, _ = self.doc2wecker_.transform(X)
+        print("\nData set's size after increase with the addition of document vectors' distances to category vectors' distances: \n{}\n".format(X.shape)) 
+
+        X, feat_nli = cl.NLIyer(X, self.nli_model, self.nli_tokenizer)
+        print("\nData set's size after increase with the addition of the nli-NN predictions on contradiction, concordance and neutrality: \n{}\n".format(X.shape)) 
+
+        feature_dict = {**feat_basic, **feat_spacy, **feat_colls, **feat_tfidf, **feat_wecker, **feat_nli}
+
+        return X, feature_dict
+    
+    
+    def save(self):
+
+        for at in range(len(self.attributes)):   
+            with open(self.paths[at], 'wb') as f:
+                pickle.dump(getattr(self, self.attributes[at]), f)
+
+        
+    def load(self):
+        
+        for at in range(len(self.attributes)):   
+            with open(self.paths[at], 'rb') as f:
+                temp_atr = pickle.load(f)
+            setattr(self, self.attributes[at], temp_atr)
+
+
+
+def dfs_initializer(paths, 
+                    columns_to_idf, 
+                    dict_colls, 
+                    nli_model,
+                    nli_tokenizer,
+                    fit_featurizer = True,
+                    sample_ratio = 1):
         
     # Loading and transforming the data set compiled last:
     feat_dict_in_wd = ('feature_dict' in globals()) or ('feature_dict' in locals())
-    last_df_in_wd = ('rich_df' in globals()) or ('rich_df' in locals())
+    dfs_postfit_in_wd = os.path.exists(paths['df_colls_path'])
     chief_df_in_wd = ('df' in globals()) or ('df' in locals())
     fdict_file_yes = os.path.exists(paths['feature_dict_path'])
     chdf_file_yes = os.path.exists(paths['chief_df_path'])
   
     if not chdf_file_yes:
         print('\nBuilding the chief data set.\n')
-        df = cleaner.dataframer(cleaner_paths, paths)
+        df = cleaner.dataframer(paths)
         print("""
-              You are now in possession of the freshly-create chief or primary data set.
+              You are now in possession of the freshly-created chief or primary data set.
               The chief data set's info:
                   
               {}
@@ -99,6 +149,8 @@ def dfs_initializer(paths, cleaner_paths, columns_to_idf):
               (df[(df.literariness == 1)].shape[0]/df.shape[0])*100, 
               df['source'].value_counts()[::-1]
               ))
+        
+        df.to_csv(paths['chief_df_path'])
             
     else:
         if not chief_df_in_wd:
@@ -107,16 +159,32 @@ def dfs_initializer(paths, cleaner_paths, columns_to_idf):
             df = df.rename(columns = {'Unnamed: 0': 'index'})
             df = df.set_index('index', drop = True)
             df = df.reset_index(drop = True)
-                        
-            # Shuffling to obtain the rich_df:
-            df = df.sample(frac=1)
+           
         else:
             print('\nYou already had the chief data set in your workspace.\n')
-            df = df.sample(frac=1)
+        
+    # Shuffling before splitting the chief_df into train and test set:
+    df = df.sample(frac = sample_ratio)
+    test_set = df.loc[df['source_cat'] == "reviews"][:]
+    test_set.to_csv(paths['test_df_path'])
+    train_set = df.loc[df['source_cat'] != "reviews"][:]
+    train_set.to_csv(paths['train_df_path'])    
         
     if not fdict_file_yes:
         print('\nBuilding the feature-enriched data set.\n')
-        rich_df, feature_dict = add_features(df, paths, columns_to_idf)
+        if not (dfs_postfit_in_wd):
+            featurizer = add_features(columns_to_idf, dict_colls, nli_model, nli_tokenizer, paths)
+            featurizer.fit(train_set)
+            featurizer.save()
+        else:
+            featurizer = add_features(columns_to_idf, dict_colls, nli_model, nli_tokenizer, paths)
+            featurizer.load()
+            
+        rich_df, feature_dict = featurizer.transform(df)
+        rich_df.to_csv(paths['rich_df_path'])
+        with open(paths['feature_dict_path'], 'wb') as f:
+            pickle.dump(feature_dict, f)
+                
         print("""
               You are now in possession of the freshly-created feature-enriched data set. 
               
@@ -127,13 +195,13 @@ def dfs_initializer(paths, cleaner_paths, columns_to_idf):
                   """.format([feature_dict.keys()]))
                 
     else:
-        if not (feat_dict_in_wd and last_df_in_wd):
-            print('\nLoading the first and last data sets, plus the feature dictionary.\n')
+        if not (feat_dict_in_wd and rich_df):
+            print('\nLoading the feature-enriched data set, plus the feature dictionary.\n')
             
             with open(paths['feature_dict_path'], 'rb') as f:
                 feature_dict = pickle.load(f)
                 
-            rich_df = pd.read_csv(paths['vecs_df_path'])
+            rich_df = pd.read_csv(paths['rich_df_path'])
             rich_df = rich_df.rename(columns = {'Unnamed: 0': 'index'})
             rich_df = rich_df.set_index('index', drop = True)
             rich_df = rich_df.reset_index(drop = True)
@@ -144,7 +212,7 @@ def dfs_initializer(paths, cleaner_paths, columns_to_idf):
                       
                       {}
                       
-                      """.format([feature_dict.keys()]))
+                      """.format(list(feature_dict.keys())))
         else:
             print("""
                   You already had the feature-enriched data set loaded on your working directory. 

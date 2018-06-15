@@ -8,9 +8,6 @@ Created on Sun Apr 29 21:00:30 2018
 Classical literature downloader: 
     
 Novels from the online library of the University of Adelaide
-and the short stories referred to in the post 
-"100 Great Short Stories" from the American Literature website
-
 
 """
 
@@ -20,26 +17,16 @@ import re
 from tqdm import tqdm
 import requests
 from bs4 import BeautifulSoup as bs
-from nltk.tokenize import sent_tokenize
 import string
 
-os.chdir('/Users/rita/Google Drive/DSR/DSR Project/Dataset')
+os.chdir(paths['code_path'])
+import prepro_funcs as prep
 
 
-urls_2 = [
-        'http://www.forgottenfutures.com/game/wetmagic/wm0.htm', 
-        'https://sourcebooks.fordham.edu/basis/beowulf.asp', 
-        'https://americanliterature.com/100-great-short-stories', 
-        'http://www.world-english.org/stories.htm', 
-        ]
-
-
-def adelaide_down():
-    
+def adelaide_down(adelaide_files = paths.get('adelaide_path')):    
     
     adelaide_path = "https://ebooks.adelaide.edu.au/meta/titles/"
     root = "https://ebooks.adelaide.edu.au"
-    adelaide_files = "/Users/rita/Google Drive/DSR/DSR Project/Dataset/long_fiction/adelaide"
     letters = list(string.ascii_uppercase)
     
     pages = []
@@ -49,8 +36,8 @@ def adelaide_down():
     adelaide_corpus = []
     links = []
     for url in tqdm(pages):
-        original_content = requests.get(url).content
-        soup = bs(original_content, "lxml")
+        original_content = prep.get_proxies(url)
+        soup = bs(original_content.content, "lxml")
         for link in soup.find_all('a'):
             if re.match(r'/\w/\w+', str(link.get('href'))):
                 links.append(str(link.get('href')))
@@ -61,8 +48,8 @@ def adelaide_down():
         name = i
         i = str(root + i)
         try:
-            content1 = requests.get(os.path.join(i, 'complete.html')).content
-            soup1 = bs(content1, "lxml")
+            r_obj = prep.get_proxies(os.path.join(i, 'complete.html'))
+            soup1 = bs(r_obj.content, "lxml")
             strings = []
             for link1 in soup1.find_all('p'):
                 for a in link1.contents:
@@ -77,8 +64,7 @@ def adelaide_down():
                                    str(name).replace("/", '_') + '.txt'
                                    ), 'w') as file:
                 file.write(elem)
-                
-        
+                       
     return adelaide_corpus
 
 
@@ -126,6 +112,6 @@ def bookshelf_lit():
 
 
 
-book = bookshelf_lit()   
+#book = bookshelf_lit()   
 adelaide_corpus = adelaide_down()
   
