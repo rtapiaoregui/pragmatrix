@@ -224,6 +224,5 @@ def dfs_initializer(paths,
                       
                       {}
                       """.format(rich_df.shape, rich_df.sample(10)))
-        
             
     return df, rich_df, feature_dict
