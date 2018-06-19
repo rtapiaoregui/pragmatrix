@@ -85,29 +85,18 @@ def rooted(paths, X, y, cols_to_remove, plot_name):
     
     X_train = Dropping(cols_to_remove).fit_transform(X_train)
     X_test = Dropping(cols_to_remove).fit_transform(X_test)
-    model = viz_tree(max_leaf_nodes = 4, max_depth = 4, random_state=123)
+    model = viz_tree(max_leaf_nodes=6, random_state = 123)
     model.fit(X_train, y_train)
     performance = model.score(X_test, y_test)
     
     dot_data = tree.export_graphviz(model,
-                                feature_names=list(X_train),
-                                out_file=None,
-                                filled=True,
-                                rounded=True)
+                                feature_names = list(X_train),
+                                out_file = None,
+                                filled = True,
+                                proportion = True,
+                                rounded = True)
     
     graph = pydotplus.graph_from_dot_data(dot_data)
-    
-    colors = ('turquoise', 'orange')
-    edges = defaultdict(list)
-    
-    for edge in graph.get_edge_list():
-        edges[edge.get_source()].append(int(edge.get_destination()))
-    
-    for edge in edges:
-        edges[edge].sort()    
-        for i in range(2):
-            dest = graph.get_node(str(edges[edge][i]))[0]
-            dest.set_fillcolor(colors[i])
     
     graph.write_png(os.path.join(paths['tree_plots_path'], str(plot_name) + '.png'))
     
@@ -162,7 +151,7 @@ def NN_prepper(paths, tokenizer_path, X):
             embeddings_index[word] = coefs
     
     if not isinstance(X, list):    
-        # Prepearing my data set so that it has the same structure and appearance as the nli corpora
+        # Preparing my data set so that it has the same structure and appearance as the nli corpora
         words = [[' '.join(word_tokenize(b)).lower() for b in sent_tokenize(a)] for a in X]
         sents = sum(words, [])
 
