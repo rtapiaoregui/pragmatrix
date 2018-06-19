@@ -34,7 +34,7 @@ from keras.models import load_model
 
 
 # Paths:
-common_path = '/Users/jose/Google Drive/DSR/DSR Project'
+common_path = '/Users/rita/Google Drive/DSR/DSR Project'
 code_path = os.path.join(common_path, 'Code')
 data_path = os.path.join(common_path, 'Data')
 corpora_path = os.path.join(data_path, 'corpus')
