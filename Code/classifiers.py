@@ -11,7 +11,6 @@ My classifiers
 import os
 import pandas as pd
 import numpy as np
-from collections import defaultdict
 import pickle
 import itertools
 
@@ -104,14 +103,14 @@ def rooted(paths, X, y, cols_to_remove, plot_name):
     
     
 
-def xgbooster(X, y, cols_to_remove, metric):
+def xgbooster(X, y, cols_to_remove, metric, clf_type = XGBClassifier()):
    
     # Splitting the dataset into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 123, shuffle = True)
       
     # Building the feature extraction pipeline
     steps = [('colls_dropper', Dropping(cols_to_remove)),
-             ('clf', XGBClassifier())]
+             ('clf', clf_type)]
     
     pipe = Pipeline(steps)
        
@@ -171,7 +170,7 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
 
     vocab_size = len(tokenizer.word_counts) + 1
     embed_dim = 300
-    max_length = 3000
+    max_length = 150
     batch_size = 50
 
     # prepare embedding matrix
@@ -188,7 +187,7 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     print(np.sum(np.sum(embedding_matrix, axis = 1) == 0))
      
     text = tokenizer.texts_to_sequences(X)
-    text = pad_sequences(text, maxlen = max_length, padding='post')
+    text = pad_sequences(text, maxlen = max_length, padding = 'post')
     labels = pd.get_dummies(y).values
     
     X_train, X_test, y_train, y_test = train_test_split(text, labels, test_size = 0.3, random_state = 123, shuffle = True)
@@ -198,18 +197,18 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
        
     model = Sequential()
     model.add(lay.Embedding(vocab_size, embed_dim, weights=[embedding_matrix], input_length = max_length))
-    model.add(lay.LSTM(100, dropout = 0.2, recurrent_dropout = 0.2))
+    model.add(lay.LSTM(55, activation = 'relu'))
     model.add(lay.Dense(n_output, activation = 'softmax'))    
     model.compile(loss = my_loss, optimizer = 'adam', metrics = ['accuracy'])
 
     model.fit(X_train, y_train, epochs = 10, batch_size = batch_size, verbose = 3)
-    loss, accuracy = model.evaluate(X_test, y_test, verbose = 3)
-    preds = model.predict_classes(X_test)
-#    rounded_preds = preds.argmax(axis = 1)
+#    preds = model.predict_classes(X_test)
+    preds = model.predict(X_test)
+    preds = preds.argmax(axis = 1)
     cm = confusion_matrix(y_test[:, 1], preds)
     plot_confusion_matrix(cm, cm_plot_labels, title = 'Matrix for Clarification')
 
-    return model, accuracy
+    return model
 
 
 
