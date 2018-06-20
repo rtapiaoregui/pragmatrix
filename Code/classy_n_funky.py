@@ -71,7 +71,9 @@ def bassicker(X):
 
     feat_basic = {
             'x' : ['text'], 
-            'targets' : ['source', 'source_cat', 'literariness'], 
+            'targets_train' : ['source', 'source_cat', 'literariness'],
+            'targets_test' : ['comicality', 'helpfulness', 
+                              'ice_ice_baby', 'usefulness'], 
             'basics' : ['length_text', 'n_words', 'n_sentences', 
                         'sent_length', 'std_len_sents', 'mean_dists']
             }

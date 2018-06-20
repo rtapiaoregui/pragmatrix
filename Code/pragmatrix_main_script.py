@@ -33,7 +33,7 @@ common_path = '/Users/rita/Google Drive/DSR/DSR Project'
 code_path = os.path.join(common_path, 'Code')
 data_path = os.path.join(common_path, 'Data')
 corpora_path = os.path.join(data_path, 'corpus')
-sets_path = os.path.join(data_path, 'datasets_small')
+sets_path = os.path.join(data_path, 'datasets')
 
    
 paths = {
@@ -114,7 +114,7 @@ chief_df, rich_df, feature_dict = feat.dfs_initializer(paths,
                                                        dict_colls,
                                                        nli_model,
                                                        nli_tokenizer,
-                                                       sample_ratio = 0.1)
+                                                       sample_ratio = 1)
 
 # Splitting the feature-enriched data set into training and test set:    
 train_set = rich_df.loc[rich_df.source_cat != 'reviews']
