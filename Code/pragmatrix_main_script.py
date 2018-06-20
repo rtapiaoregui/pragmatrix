@@ -12,25 +12,20 @@ Pragmatrix Main Script
 # Imports
 import os
 
-import requests
 import re
 from collections import OrderedDict
 import pickle
-from tqdm import tqdm
-from nltk.tokenize import sent_tokenize
-from collections import defaultdict
-from nltk.tokenize import sent_tokenize, word_tokenize
+
 import pandas as pd
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline
 import numpy as np
-from xgboost import XGBClassifier
-import xgboost as xgb
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score, log_loss
 from sklearn.preprocessing import LabelBinarizer
 from keras.models import load_model
+
+import xgboost as xgb
+from xgboost import XGBRegressor
 
 
 # Paths:
@@ -38,7 +33,7 @@ common_path = '/Users/rita/Google Drive/DSR/DSR Project'
 code_path = os.path.join(common_path, 'Code')
 data_path = os.path.join(common_path, 'Data')
 corpora_path = os.path.join(data_path, 'corpus')
-sets_path = os.path.join(data_path, 'datasets')
+sets_path = os.path.join(data_path, 'datasets_small')
 
    
 paths = {
@@ -119,7 +114,7 @@ chief_df, rich_df, feature_dict = feat.dfs_initializer(paths,
                                                        dict_colls,
                                                        nli_model,
                                                        nli_tokenizer,
-                                                       sample_ratio = 1)
+                                                       sample_ratio = 0.1)
 
 # Splitting the feature-enriched data set into training and test set:    
 train_set = rich_df.loc[rich_df.source_cat != 'reviews']
@@ -129,41 +124,50 @@ test_set = rich_df.loc[rich_df.source_cat == 'reviews']
 ## Modelling options:
 options = input("""
                 Choose one of the available options, which can be found specified below 
-                (must be a number between 1 and 4):
+                (must be a number between 1 and 5):
                     
                 Option 1:
-                    model = logistic regession
-                    features = basic, colls
-                    y = literariness
+                    model: logistic regression
+                    features: basic, colls
+                    y: literariness
                     
                 Option 2:
-                     model = tree
-                     features = you will be prompted to choose further
-                     y = all labels: literariness, source_cat, source
+                     model: tree
+                     features: you will be prompted to choose further
+                     y: all training set labels (literariness, source_cat, source)
                     
                 Option 3:
-                     model = doc2vec
-                     features = the original text observations and Spacy's tags
-                     y = all labels: literariness, source_cat, source
+                     model: doc2vec
+                     features: the original text observations and Spacy's tags
+                     y: all training set labels (literariness, source_cat, source)
                      
                  Option 4:
-                     model = xgboost
+                     model: xgboost
                      
-                     features = You can either choose to train the xgboost model with all 
-                     but the doc2vec distances between the observations' and the labels' vectors, 
-                     or the classifier to extract the predictions that will be used to establish 
-                     whether there is a correlation between how useful reviews seem and how 
-                     literary they are. This last model, called 'the terminator', employs the 
-                     ensembling technique known as stacking, because it includes the predictions 
+                     features:
+                     
+                         You can either choose to train the xgboost model with all 
+                     but the doc2vec distances between the observations' and the 
+                     labels' vectors, or the classifier to extract the predictions
+                     that will be used to establish whether there is a correlation
+                     between how useful reviews seem and how literary they are.
+                     This last model, called 'the terminator', employs the ensembling
+                     technique known as stacking, because it includes the predictions 
                      from the doc2vec classifier.
                      
-                     y = you will be prompted to choose further
+                         There is also a third option available, that entails training a 
+                     regression model to see whether the Amazon reviews' ratings on 
+                     'helpfulness' can be predicted taking only the features that 
+                     highlight the importance of the textual form, 
+                     over that of the content, into account.
+                     
+                     y: you will be prompted to choose further
                     
                 Option 5: 
-                     model = LSTM 
-                     features = only the original text observations
-                     y = all labels: literariness, source_cat, source
-                    
+                     model: LSTM 
+                     features: only the original text observations
+                     y: all training set labels (literariness, source_cat, source) 
+                     
                 """)
 
 options = int(options)
@@ -180,7 +184,7 @@ if options == 1:
 
     linear_feat = [
             'x', 
-            'targets', 
+            'targets_train', 
             'basics', 
             'collocations',  
             ]
@@ -214,25 +218,25 @@ if options == 2:
                         """)
 
     if re.match('a', alternative):
-        tree_feat = ['x', 'targets', 'basics']
+        tree_feat = ['x', 'targets_train', 'basics']
         plot_name = 'basic'
     elif re.match('b', alternative):
-        tree_feat = ['x', 'targets', 'collocations']
+        tree_feat = ['x', 'targets_train', 'collocations']
         plot_name = 'colls'
     elif re.match('c', alternative):
-        tree_feat = ['x', 'targets', 'nli']
+        tree_feat = ['x', 'targets_train', 'nli']
         plot_name = 'nli'
     elif re.match('d', alternative):
-        tree_feat = ['x', 'targets', 'spacy']
+        tree_feat = ['x', 'targets_train', 'spacy']
         plot_name = 'spacy'
     elif re.match('e', alternative):
-        tree_feat = ['x', 'targets', 
+        tree_feat = ['x', 'targets_train', 
                      'text_1gram', 'text_2gram',
                      'pos_tags_1gram', 'pos_tags_2gram',
                      'syn_dep_1gram', 'syn_dep_2gram']
         plot_name = 'tfidf'
     else:
-        tree_feat = ['x', 'targets', 
+        tree_feat = ['x', 'targets_train', 
                      'doc2vec_vecs_text',
                      'soft_doc2vec_dists_text', 
                      'doc2vec_vecs_pos_tags',
@@ -259,8 +263,9 @@ if options == 2:
 
     
     tree_model, tree_score = cla.rooted(paths, tree_df, y_tree, cols_to_remove, plot_name)
+    print('\nThe out of sample accuracy score for this tree is: {}\n'.format(tree_score))
+ 
     
-  
     
 if options == 3:
     
@@ -272,7 +277,7 @@ if options == 3:
     wecker_feat = [
             'x',
             'spacy', 
-            'targets', 
+            'targets_train', 
             ]
     
     columns_to_train = [i for a in wecker_feat for i in feature_dict[a]]
@@ -322,9 +327,11 @@ if options == 4:
             d) the terminator 
             (the classifier to predict the observations' degree 
             of literariness with all features)
+            e) Amazon reviews' ratings on helpfulness
             
             """)
-    
+            
+
     if (alternative == 'a') or (alternative == 'b') or (alternative == 'c'):
         
         non_xgb_feat = [
@@ -350,10 +357,10 @@ if options == 4:
             y_xgb = xgb_df.pop('literariness')
             
         xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
-        xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features=20, importance_type = 'gain')
+        xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features = 20, importance_type = 'gain')
         print("The model's score: {}".format(xgboost_score))
             
-    else:
+    elif (alternative == 'd'):
         xgb_df = train_set.loc[:, ~train_set.columns.isin(['d2v_dist_text_literariness_1',
                                                        'd2v_dist_text_literariness_0',
                                                        'd2v_dist_pos_tags_literariness_1',
@@ -364,7 +371,7 @@ if options == 4:
         y_xgb = xgb_df.pop('literariness')
 
         xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
-        xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features=20, importance_type = 'gain')
+        xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features = 20, importance_type = 'gain')
         print("The model's score: {}".format(xgboost_score))
         
         xgb_test = test_set.loc[:, ~test_set.columns.isin(['d2v_dist_text_literariness_1',
@@ -397,6 +404,20 @@ if options == 4:
         print("The correlation between the ratings on helpfulness of movie and TV reviews on Amazon and the reviews' degree of literariness: {}".format(
                 amazon_preds.predicted_probas.corr(amazon_preds.helpfulness)))
         
+    else:
+        to_train = test_set.loc[test_set.source == 'amazon_reviews']
+        non_xgbreg_feat = set(['text_1gram', 'text_2gram', 'doc2vec_vecs_text', 'soft_doc2vec_dists_text', 'nli'])
+        all_feat = set(list(feature_dict.keys()))
+        xgbreg_feat = all_feat.difference(non_xgbreg_feat)
+        columns_to_train = [i for a in xgbreg_feat for i in feature_dict[a]]
+        
+        xgb_df = to_train.loc[:, to_train.columns.isin(columns_to_train)]
+        metric = 'neg_mean_squared_error'
+        y_xgb = xgb_df.pop('helpfulness')
+        xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric, clf_type = XGBRegressor())
+        xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features = 20, importance_type = 'gain')
+        print("The model's score: {}".format(xgboost_score))
+
 
 
 if options == 5:
@@ -428,13 +449,14 @@ if options == 5:
         y_lstm = train_set.pop('literariness')
         n_output = len(y_lstm.value_counts())
     
-    lstm_model, accuracy = cla.LSTMer(paths, 
-                                      lstm_feat, 
-                                      y_lstm, 
-                                      n_output, 
-                                      my_loss, 
-                                      cm_plot_labels)
+    lstm_model = cla.LSTMer(paths,
+                            lstm_feat,
+                            y_lstm,
+                            n_output,
+                            my_loss,
+                            cm_plot_labels)
         
     history = lstm_model.summary()
     print(history)
-    print(accuracy*100)
+    
+ 
