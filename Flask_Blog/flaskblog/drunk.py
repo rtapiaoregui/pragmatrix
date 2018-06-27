@@ -7,6 +7,7 @@ Created on Thu Jun 21 09:41:07 2018
 """
 
 from flask import Flask, render_template, jsonify, request
+from flask_bootstrap import Bootstrap
 from sklearn.externals import joblib
 import os
 
@@ -16,18 +17,18 @@ from pragmatrix.context import contextualizer
 from pragmatrix import classifiers as cla
 
 app = Flask(__name__)
+Bootstrap(app)
 
 @app.route("/")
-@app.route("/home")
+@app.route("/home", methods=['POST', 'GET'])
 def hello():
-    return render_template('home.html')
-
-@app.route("/predict", methods=['POST'])
-def predict():
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return render_template('index.html', title = 'About')
+    else:
         try:
-            data = request.get_json()
-            new_text = str(data["text"])
+            data = request.form['user_submission']
+            new_text = str(data)
+            
             (paths, spacy_model,
              columns_to_idf, cols_to_remove,
              dict_colls, nli_tokenizer, nli_model) = contextualizer()
@@ -37,12 +38,14 @@ def predict():
             new_obs = cla.Dropping(cols_to_remove).fit_transform(new_obs)
             
             terminator = joblib.load(paths.get('terminator_path'))
+            preds = terminator.predict_proba(new_obs)[:, 1].tolist()
             
+            return jsonify("These are the predictions.",format(preds))
+
         except ValueError:
             return jsonify("Please enter a text of length ranging from 3000 to 6000 characters.")
 
-        return jsonify(terminator.predict(new_obs).tolist())
-    
+
 
 if __name__ == '__main__':
     app.run(debug = True)
