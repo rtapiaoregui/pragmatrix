@@ -25,7 +25,7 @@ from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier as viz_tree
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import confusion_matrix, auc
+from sklearn.metrics import confusion_matrix, auc, roc_curve
 
 from xgboost import XGBClassifier
 
@@ -33,6 +33,8 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import Tokenizer
 from keras.models import Sequential
 from keras import layers as lay
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+
 
 
 
@@ -174,21 +176,22 @@ def NN_prepper(paths, tokenizer_path, X):
     
 
 def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
-    
+
     embeddings_index, tokenizer, structured_df, sents = NN_prepper(paths, 'lstm_tokenizer_path', X)
-    structured_df = structured_df.assign(target = y.values)
-    
-    y = []
-    for i in range(len(structured_df)):
-        a = [structured_df.target[i]] * structured_df.multiplier[i]
-        y.append(a)
-    
-    y = sum(y, [])
+
+# This commented section is needed to give sentences as input instead of whole documents. 
+#    structured_df = structured_df.assign(target = y.values)
+#    y = []
+#    for i in range(len(structured_df)):
+#        a = [structured_df.target[i]] * structured_df.multiplier[i]
+#        y.append(a)
+#    
+#    y = sum(y, [])
     
     vocab_size = len(tokenizer.word_index) + 1
     embed_dim = 300
     max_length = 150
-    batch_size = 50
+    batch_size = 20
 
     # prepare embedding matrix
     embedding_matrix = np.zeros((vocab_size, embed_dim))
@@ -202,16 +205,20 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     
     print('Total number of null word embeddings:')
     print(np.sum(np.sum(embedding_matrix, axis = 1) == 0))
-     
-    text = tokenizer.texts_to_sequences(sents)
+    
+#    text = tokenizer.texts_to_sequences(sents)
+    text = tokenizer.texts_to_sequences(X)
     text = pad_sequences(text, maxlen = max_length, padding = 'post')
     labels = pd.get_dummies(y).values
     
     X_train, X_test, y_train, y_test = train_test_split(text, labels, test_size = 0.3, random_state = 123, shuffle = True)
     
-    print(X_train.shape, y_train.shape)
-    print(X_test.shape, y_test.shape)
-       
+    # Defining callbacks
+    early_stopping = EarlyStopping(monitor='loss', patience=4)
+    checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='loss', verbose=2, save_best_only=True, mode='max')
+    
+    class_weight = {0:(1-sum(labels)[0]/sum(sum(labels))), 1:(1-sum(labels)[1]/sum(sum(labels)))}
+        
     model = Sequential()
     model.add(lay.Embedding(vocab_size, embed_dim, 
                             weights=[embedding_matrix], 
@@ -220,13 +227,27 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     model.add(lay.LSTM(55, activation = 'relu'))
     model.add(lay.Dense(n_output, activation = 'softmax'))    
     model.compile(loss = my_loss, optimizer = 'adam', metrics = ['accuracy'])
-
-    model.fit(X_train, y_train, epochs = 10, batch_size = batch_size, verbose = 3)
-#    preds = model.predict_classes(X_test)
+    
+    model.fit(X_train, 
+              y_train, 
+              epochs = 15, 
+              batch_size = batch_size,
+              validation_data = (X_test, y_test),
+              verbose = 2, 
+              callbacks=[early_stopping, checkpoint],
+              class_weight = class_weight)
+    
+    
+    model.load_weights(paths.get('lstm_weights_path'))
+    model.compile(loss = my_loss, optimizer = 'adam', metrics = ['accuracy'])
+    
     preds = model.predict(X_test)
+    
+    fpr, tpr, thresholds = roc_curve(y_test[:, 1], preds[:, 1])
+    auc_score = auc(fpr, tpr)
+
     preds = preds.argmax(axis = 1)
     cm = confusion_matrix(y_test[:, 1], preds)
-    auc_score = auc(y_test[:, 1], preds)
     plot_confusion_matrix(cm, cm_plot_labels, title = 'Matrix for Clarification')
 
     return model, auc_score
