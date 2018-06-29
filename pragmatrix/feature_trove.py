@@ -15,8 +15,8 @@ from operator import itemgetter
 
 # Functions and classes
 # os.chdir(paths['code_path'])
-from pragmatrix import classy_n_funky as cl
-from pragmatrix import cleaner
+import classy_n_funky as cl
+import cleaner
 
 from sklearn.base import BaseEstimator, TransformerMixin
 

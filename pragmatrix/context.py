@@ -31,6 +31,7 @@ def contextualizer():
             'lstm_tokenizer_path' : os.path.join(data_path, 'models', 'lstm_tokenizer.pickle'),
             'nli_model_path' : os.path.join(data_path, 'models', 'NLI_nn.h5'),
             'terminator_path' : os.path.join(data_path, 'models', 'terminator.pkl'),
+            'lstm_weights_path' : os.path.join(data_path, 'models', 'lstm_weights.hdf5'),
             'tree_plots_path' : os.path.join(data_path, 'plots', 'trees'), 
             'multi_nli_paths' : os.path.join(sets_path, 'multinli_1.0', 'multinli_1.0_train.jsonl'),
             'snli_paths' : os.path.join(sets_path, 'snli_1.0', 'snli_1.0_train.jsonl'),

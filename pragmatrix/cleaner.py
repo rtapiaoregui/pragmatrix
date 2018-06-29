@@ -20,7 +20,7 @@ from langdetect import detect
 
 # My functions and classes
 # os.chdir(paths['code_path'])
-from pragmatrix.prepro_funcs import docs_normalizer as norm
+from prepro_funcs import docs_normalizer as norm
 
 # Functions to clean the raw text files downloaded 
 # from both literary and non-literary sources.

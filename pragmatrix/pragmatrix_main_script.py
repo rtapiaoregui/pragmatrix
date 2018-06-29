@@ -26,11 +26,11 @@ from sklearn.preprocessing import LabelBinarizer
 import xgboost as xgb
 from xgboost import XGBRegressor
 
-os.chdir('/Users/rita/Google Drive/DSR/DSR Project')
-from pragmatrix.context import contextualizer
-from pragmatrix import classy_n_funky as cl
-from pragmatrix import feature_trove as feat
-from pragmatrix import classifiers as cla
+os.chdir('/Users/rita/Google Drive/DSR/DSR Project/pragmatrix')
+from context import contextualizer
+import classy_n_funky as cl
+import feature_trove as feat
+import classifiers as cla
 
 (paths, spacy_model, 
  columns_to_idf, cols_to_remove, 
