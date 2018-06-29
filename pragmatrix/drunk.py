@@ -8,7 +8,7 @@ Created on Thu Jun 21 09:41:07 2018
 
 from flask import Flask, render_template, jsonify, request
 from flask_bootstrap import Bootstrap
-from sklearn.externals import joblib
+import pickle
 import os
 
 import pandas as pd
@@ -18,6 +18,7 @@ import classifiers as cla
 
 app = Flask(__name__)
 Bootstrap(app)
+
 form = """
 <form action = "/predict" method = "POST">
     <label for = "user_submission"> Submit a 3000 to 6000 characters-long text to obtain predictions: </label>
@@ -49,9 +50,18 @@ def prdict():
         new_obs, feature_dict = featurizer.transform(df)
         new_obs = cla.Dropping(cols_to_remove).fit_transform(new_obs)
         
-        terminator = joblib.load(paths.get('terminator_path'))
-        preds = terminator.predict_proba(new_obs)[:, 1].tolist()
+        with open(paths.get('terminator_path'), "rb") as filehandler:
+            terminator = pickle.load(filehandler)
         
+        xgb_obs = new_obs.loc[:, ~new_obs.columns.isin(['d2v_dist_text_literariness_1',
+                                                       'd2v_dist_text_literariness_0',
+                                                       'd2v_dist_pos_tags_literariness_1',
+                                                       'd2v_dist_pos_tags_literariness_0', 
+                                                       'd2v_dist_syn_deps_literariness_1',
+                                                       'd2v_dist_syn_deps_literariness_0'])]
+         
+        preds = terminator.predict_proba(xgb_obs)[:, 1].tolist()
+
         return jsonify("These are the predictions.",format(preds))
 
     except ValueError:
