@@ -1,9 +1,49 @@
 {% extends "bootstrap/base.html" %} 
 
 {% block content %}
-<h1>Pragmatrix</h1>
 
-<p> Enter a valid submission: </p>
+<style type = "text/css">
+
+h1, h4 { 
+font-family: "Courier New";
+margin-right: 310px;
+margin-left: 310px;
+}
+
+body {
+    background-color:lightblue;
+    background_size:100%;
+}
+
+</style>
+
+<div align = "center">
+<h1>Pragmatrix</h1>
+<h4><br/>Welcome to Pragmatrix, a system that tells you how similar a given text is
+to texts retrieved from online repositories of literature.</h4>
+<h4>According to the machine, that is.</h4>
+<a href = "https://github.com/rtapiaoregui/pragmatrix">Check out the project's Github page.</a>
+</div>
+<div align = "center">
+<form action = "/predict" method = "POST">
+    <label for = "user_submission"><br/>Enter a valid submission: The text's length has to range from 3000 to 6000 characters.</label>
+    <br/>
+    <textarea id = "user_submission" name = "user_submission" maxlength = "6000" rows = "27" cols = "160">
+NLP, for lack of a better word
+
+NLP stands for natural language processing and refers to the activity computers undertake to make the, weirdly enough, so-called natural language understandable to us humans. Natural, as in belonging to nature and nature alone, the one that is detached from us and calls us—to return to the fold?—, but isn’t really into a two-way street style of communication—I gather. We should really think about renaming it. But then again, there is probably a solid reason for it to be called the way it’s called, one that is humanly unfathomable, of course, for none of us humans can store enough information in our heads and have it all available at once, when needed—at the only time that actually matters—to make an informed decision on whether the words we use are faithful representations of the ever-more complex world surrounding us.
+
+Nowadays, all that’s being couched in natural language—for the most part, on the Internet—by people who are worth listening to—and whose utterances deserve hence to be ranked higher by Google—is being formulated in a version of the same that, more often than not, is neither the speakers’—another misnomer—nor the audience’s mother tongue, and when folks decide to get creative—which, luckily, doesn’t happen very often—it tends to get rather confusing. But we are not to worry, because, thankfully, we can always rely on computers to help us sieve through the muddy and tempestuous waters of upper- and undertones and get directly to the gist of what is being said, which, surely, might as well have been condensed into an clean-cut emoji.
+
+Now, I know many of you are wondering how exactly does the magic—slash—respectable science happen. Well, there is, for one, a lot of very sophisticated word-counting involved, which receives different names and is treated as whole different concepts depending on its degree of sophistication, and then there is what goes on inside a neural network. First of all, I am going to state the obvious, for all of you renegades—slash—degenerates out there. Computers are entitled to their secrets, as are the rest of us functional-brain carriers, on paper, at least. And it shouldn’t really concern us how they come up with their scarily-accurate predictions about how people really feel, deep down, despite their initial reluctance to admit it, in as far as they keep helping Netflix suggest and provide us with exactly the kind of content we were basically begging to consume. 
+
+But here comes the most exciting part of what computers are already capable of, which I have not  even yet gotten around to touch upon. Computers have been able to figure out, all on their own, just by looking at the frequency with which words appear grouped together in different contexts, that queen is to king what woman is to man, which certainly means that, for one, computers are very progressive creatures, and secondly, we have been using the wrong title to refer to the Duke of Edinburgh all along, which, by the way, being honest, is very masochistic of us non-Edinbuggers, considering the unpronounceability of the toponym.
+
+All in all, I believe we can all agree we should leave the task of dealing with language in the expert hands—slash—tentacles of the machine, which cannot disappoint, because it has been specifically programmed to that end.</textarea>
+    <br/>
+    <input type = "submit" />
+</form>
+</div>
 
 {% endblock %}
 

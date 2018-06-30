@@ -1,0 +1,32 @@
+{% extends "bootstrap/base.html" %} 
+
+{% block content %}
+
+<style type = "text/css">
+
+p { 
+font-family: "Courier New";
+margin-right: 310px;
+margin-left: 310px;
+}
+
+body {
+    background-color:lightblue;
+    background_size:100%;
+}
+
+</style>
+
+<div align = "center">
+</br>
+<p> <font size = "5"> This is the model's prediction about the source your text belongs to: {{ pred }} </font></p>
+<p> <font size = "4"> Zero equates to a very confident prediction of it belonging to a non-literary type of source, 
+while one, of it having been retrieved from an online repository of literature.</font></p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+{% endblock %}

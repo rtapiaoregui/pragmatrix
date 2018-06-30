@@ -25,7 +25,6 @@ from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier as viz_tree
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import confusion_matrix, auc, roc_curve
 
 from xgboost import XGBClassifier
 
@@ -86,9 +85,9 @@ def rooted(paths, X, y, cols_to_remove, plot_name):
     
     X_train = Dropping(cols_to_remove).fit_transform(X_train)
     X_test = Dropping(cols_to_remove).fit_transform(X_test)
-    model = viz_tree(max_leaf_nodes=6, random_state = 123)
+    model = viz_tree(max_leaf_nodes = 6, random_state = 123)
     model.fit(X_train, y_train)
-    performance = model.score(X_test, y_test)
+    preds = model.predict_proba(X_test)
     
     dot_data = tree.export_graphviz(model,
                                 feature_names = list(X_train),
@@ -101,7 +100,7 @@ def rooted(paths, X, y, cols_to_remove, plot_name):
     
     graph.write_png(os.path.join(paths['tree_plots_path'], str(plot_name) + '.png'))
     
-    return model, performance
+    return model, preds, y_test
     
     
 
@@ -215,7 +214,7 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     
     # Defining callbacks
     early_stopping = EarlyStopping(monitor='loss', patience=4)
-    checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='loss', verbose=2, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='loss', verbose = 2, save_best_only = True, mode = 'max')
     
     class_weight = {0:(1-sum(labels)[0]/sum(sum(labels))), 1:(1-sum(labels)[1]/sum(sum(labels)))}
         
@@ -243,14 +242,7 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     
     preds = model.predict(X_test)
     
-    fpr, tpr, thresholds = roc_curve(y_test[:, 1], preds[:, 1])
-    auc_score = auc(fpr, tpr)
-
-    preds = preds.argmax(axis = 1)
-    cm = confusion_matrix(y_test[:, 1], preds)
-    plot_confusion_matrix(cm, cm_plot_labels, title = 'Matrix for Clarification')
-
-    return model, auc_score
+    return model, preds, y_test
 
 
 

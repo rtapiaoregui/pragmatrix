@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, log_loss
+from sklearn.metrics import confusion_matrix, roc_auc_score, log_loss
 from sklearn.preprocessing import LabelBinarizer
 
 import xgboost as xgb
@@ -116,7 +116,11 @@ if options == 1:
             'x', 
             'targets_train', 
             'basics', 
-            'collocations',  
+            'collocations', 
+            'pos_tags_1gram',
+            'pos_tags_2gram',
+            'syn_dep_1gram',
+            'syn_dep_2gram'
             ]
     
     columns_to_train = [i for a in linear_feat for i in feature_dict[a]]
@@ -184,16 +188,25 @@ if options == 2:
     if re.search('2', alternative):
         y_tree = tree_df.pop('source_cat')
         plot_name = plot_name + '_source_cat_tree'
+        tree_model, tree_preds, y_true = cla.rooted(paths, tree_df, y_tree, cols_to_remove, plot_name)
+        labels = pd.get_dummies(y_true)
+        tree_score = log_loss(labels, tree_preds)
+
     elif re.search('3', alternative):
         y_tree = tree_df.pop('source')
         plot_name = plot_name + '_source_tree'
+        tree_model, tree_preds, y_true = cla.rooted(paths, tree_df, y_tree, cols_to_remove, plot_name)
+        labels = pd.get_dummies(y_true)
+        tree_score = log_loss(labels, tree_preds)
+        
     else:
         y_tree = tree_df.pop('literariness')
-        plot_name = plot_name + '_liter_tree'        
-
+        plot_name = plot_name + '_liter_tree'
+        tree_model, tree_preds, y_true = cla.rooted(paths, tree_df, y_tree, cols_to_remove, plot_name)
+        tree_score = roc_auc_score(y_true, tree_preds[:, 1])
     
-    tree_model, tree_score = cla.rooted(paths, tree_df, y_tree, cols_to_remove, plot_name)
-    print('\nThe out of sample accuracy score for this tree is: {}\n'.format(tree_score))
+    
+    print("\nThis tree's score is: {}\n".format(tree_score))
  
     
     
@@ -315,7 +328,7 @@ if options == 4:
                                                        'd2v_dist_syn_deps_literariness_0'])]
             
         xgb_test = cla.Dropping(cols_to_remove).fit_transform(xgb_test)
-        predicted_probas = xgboost_model.predict_proba(xgb_test)[:, 1]
+        predicted_probas = xgboost_model.predict_proba(xgb_test)[:, int(np.where(xgboost_model.classes_ == 1)[0])]
 
         rev_ratings = test_set.loc[:, test_set.columns.isin([
                 'comicality', 'helpfulness', 'ice_ice_baby', 'usefulness'
@@ -372,24 +385,45 @@ if options == 5:
         cm_plot_labels = list(train_set.source.value_counts())
         y_lstm = train_set.pop('source')
         n_output = len(y_lstm.value_counts())
+        lstm_model, lstm_preds, y_true = cla.LSTMer(paths,
+                        lstm_feat,
+                        y_lstm,
+                        n_output,
+                        my_loss,
+                        cm_plot_labels)
+        lstm_score = log_loss(y_true, lstm_preds)
+
     elif (alternative == 'b'):
         cm_plot_labels = list(train_set.source_cat.value_counts())
         y_lstm = train_set.pop('source_cat')
         n_output = len(y_lstm.value_counts())
+        lstm_model, lstm_preds, y_true = cla.LSTMer(paths,
+                        lstm_feat,
+                        y_lstm,
+                        n_output,
+                        my_loss,
+                        cm_plot_labels)
+        lstm_score = log_loss(y_true, lstm_preds)
+
     else:
         cm_plot_labels = ['non-literary observations', 'literary observations']
         my_loss = 'binary_crossentropy'
         y_lstm = train_set.pop('literariness')
         n_output = len(y_lstm.value_counts())
-    
-    lstm_model, lstm_score = cla.LSTMer(paths,
-                            lstm_feat,
-                            y_lstm,
-                            n_output,
-                            my_loss,
-                            cm_plot_labels)
+        lstm_model, lstm_preds, y_true = cla.LSTMer(paths,
+                                lstm_feat,
+                                y_lstm,
+                                n_output,
+                                my_loss,
+                                cm_plot_labels)
         
-    history = lstm_model.summary()
-    print(history)
-    
+        lstm_score = roc_auc_score(y_true[:, 1], lstm_preds[:, 1])
+        
+        binary_preds = lstm_preds.argmax(axis = 1)
+        cm = confusion_matrix(y_true[:, 1], binary_preds)
+        cla.plot_confusion_matrix(cm, cm_plot_labels, title = 'Matrix for Clarification')
+
+
+    print('The LSTM score: {}'.format(lstm_score))
+        
  
