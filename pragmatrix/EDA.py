@@ -16,11 +16,11 @@ from matplotlib.legend_handler import HandlerBase
 from matplotlib.text import Text
 
 # Loading the data sets
-os.chdir('/Users/rita/Google Drive/DSR/DSR Project/Dataset/datasets/')
+os.chdir('/Users/rita/Google Drive/DSR/DSR Project/Data/datasets/')
 train = pd.read_csv('train_set.csv')
 test = pd.read_csv('test_set.csv')
 
-plot_path = "/Users/rita/Google Drive/DSR/DSR Project/Dataset/plots"
+plot_path = "/Users/rita/Google Drive/DSR/DSR Project/Data/plots"
 
 # Training set plots
 data_s = train.source.value_counts().reset_index().rename(

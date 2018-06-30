@@ -213,8 +213,8 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     X_train, X_test, y_train, y_test = train_test_split(text, labels, test_size = 0.3, random_state = 123, shuffle = True)
     
     # Defining callbacks
-    early_stopping = EarlyStopping(monitor='loss', patience=4)
-    checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='loss', verbose = 2, save_best_only = True, mode = 'max')
+    early_stopping = EarlyStopping(monitor='acc', patience=4)
+    checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='acc', verbose = 2, save_best_only = True, mode = 'max')
 
     class_weight = {i: max(labels.sum(0))/labels.sum(0)[i] for i in range(n_output)}
     class_weight = {key: val/sum(class_weight.values()) for key, val in class_weight.items()}
