@@ -215,9 +215,10 @@ def LSTMer(paths, X, y, n_output, my_loss, cm_plot_labels):
     # Defining callbacks
     early_stopping = EarlyStopping(monitor='loss', patience=4)
     checkpoint = ModelCheckpoint(paths.get('lstm_weights_path'), monitor='loss', verbose = 2, save_best_only = True, mode = 'max')
+
+    class_weight = {i: max(labels.sum(0))/labels.sum(0)[i] for i in range(n_output)}
+    class_weight = {key: val/sum(class_weight.values()) for key, val in class_weight.items()}
     
-    class_weight = {0:(1-sum(labels)[0]/sum(sum(labels))), 1:(1-sum(labels)[1]/sum(sum(labels)))}
-        
     model = Sequential()
     model.add(lay.Embedding(vocab_size, embed_dim, 
                             weights=[embedding_matrix], 
