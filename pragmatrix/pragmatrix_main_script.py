@@ -18,15 +18,17 @@ import pickle
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, roc_auc_score, log_loss
 from sklearn.preprocessing import LabelBinarizer
 
+
 import xgboost as xgb
 from xgboost import XGBRegressor
 
-os.chdir('/Users/rita/Google Drive/DSR/DSR Project/pragmatrix')
+# os.chdir('/Users/rita/Google Drive/DSR/DSR Project/pragmatrix')
 from context import contextualizer
 import classy_n_funky as cl
 import feature_trove as feat
@@ -299,7 +301,7 @@ if options == 4:
             metric = 'roc_auc'
             y_xgb = xgb_df.pop('literariness')
             
-        xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
+        xgboost_model, xgboost_score, _, _ = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
         xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features = 20, importance_type = 'gain')
         print("The model's score: {}".format(xgboost_score))
             
@@ -313,7 +315,7 @@ if options == 4:
         metric = 'roc_auc'
         y_xgb = xgb_df.pop('literariness')
 
-        xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
+        xgboost_model, xgboost_score, _, _ = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric)
         
         # Saving the model to use it later on the website created with flask
         pickle.dump(xgboost_model, open(paths.get('terminator_path'), "wb"))
@@ -350,6 +352,38 @@ if options == 4:
         print("The correlation between the ratings on helpfulness of movie and TV reviews on Amazon and the reviews' degree of literariness: {}".format(
                 amazon_preds.predicted_probas.corr(amazon_preds.helpfulness)))
         
+        # PLOTTING
+        print("""
+              Plotting the correlation between the model's predictions about the 
+              probability a given text observation has of belonging to a literary source 
+              and how helpful Amazon-movie and TV reviews are seen as.
+              
+              """)
+        x = amazon_preds.predicted_probas
+        y = amazon_preds.helpfulness
+        
+        # calculate polynomial
+        z = np.polyfit(x.T.values, y.T.values, 3)
+        f = np.poly1d(z)
+        print(f)
+        
+        # calculate new x's and y's and plot
+        x_new = np.linspace(min(x), max(x), 50)
+        y_new = f(x_new)
+        
+        plt.subplot(1,2,1)
+        plt.plot(amazon_preds.helpfulness, amazon_preds.predicted_probas, 'bo', x_new, y_new)
+        plt.ylabel('Predicted literariness')
+        plt.xlabel('Amazon helpfulness')
+        plt.subplot(1,2,2)
+        plt.plot(yelp_preds.usefulness, yelp_preds.predicted_probas, 'rx')
+        plt.xlabel('Yelp usefulness')
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(paths.get('plots_path'), "lit_effect.png"), transparent = False)
+        
+        
+        
     else:
         to_train = test_set.loc[test_set.source == 'amazon_reviews']
         non_xgbreg_feat = set(['text_1gram', 'text_2gram', 'doc2vec_vecs_text', 'soft_doc2vec_dists_text', 'nli'])
@@ -360,9 +394,33 @@ if options == 4:
         xgb_df = to_train.loc[:, to_train.columns.isin(columns_to_train)]
         metric = 'neg_mean_squared_error'
         y_xgb = xgb_df.pop('helpfulness')
-        xgboost_model, xgboost_score = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric, clf_type = XGBRegressor())
+        xgboost_model, xgboost_score, xgboost_preds, xgboost_y = cla.xgbooster(xgb_df, y_xgb, cols_to_remove, metric, clf_type = XGBRegressor())
         xgb.plot_importance(xgboost_model.best_estimator_.named_steps['clf'], max_num_features = 20, importance_type = 'gain')
         print("The model's score: {}".format(xgboost_score))
+        
+        # PLOTTING
+        print("""
+              Plotting how close the model's predictions 
+              about how helpful Amazon-movie and TV reviews are rated as 
+              were to the true values.
+              
+              """)
+        
+
+        # calculate polynomial
+        z = np.polyfit(xgboost_preds, xgboost_y.values, 3)
+        f = np.poly1d(z)
+        
+        # calculate new x's and y's
+        x_new = np.linspace(min(xgboost_preds), max(xgboost_y), 50)
+        y_new = f(x_new)
+        
+        plt.plot(xgboost_preds, xgboost_y, 'rx', x_new, y_new, ms=1)
+        plt.ylabel('Predicted values')
+        plt.xlabel('True values')
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(paths.get('plots_path'), 'pred_helpfulness.png'), transparent = False)
 
 
 

@@ -65,7 +65,7 @@ def log_reg(X, y, cols_to_remove):
     param_grid = {'clf__C': np.linspace(5000, 11000, 1000)}
  
     model = GridSearchCV(estimator = pipe, param_grid = param_grid,
-                       cv = 5, scoring = "precision", refit = True)    
+                       cv = 5, scoring = "roc_auc", refit = True)    
 
     model.fit(X_train, y_train)
     scoring = model.score(X_test, y_test)
@@ -136,7 +136,12 @@ def xgbooster(X, y, cols_to_remove, metric, clf_type = XGBClassifier()):
     print()
     print('The best parameters: ', model.best_params_)
     
-    return model, performance
+    if (clf_type != XGBClassifier()):
+        preds = model.predict(X_test)
+    else:
+        preds = model.predict_proba(X_test)
+    
+    return model, performance, preds, y_test
 
 
 
