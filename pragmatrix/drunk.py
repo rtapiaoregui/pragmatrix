@@ -11,9 +11,10 @@ from flask_bootstrap import Bootstrap
 import pickle
 import numpy as np
 import pandas as pd
+import classifiers as cla
 import feature_trove as feat
 from context import contextualizer
-import classifiers as cla
+
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -63,5 +64,5 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug = True, threaded = False, host = '0.0.0.0')
+    app.run(debug = True, threaded = False)
     
